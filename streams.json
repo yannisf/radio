@@ -3,6 +3,10 @@
     "name": "Zepellin 106.7",
     "url": "https://radiostreaming.ert.gr/ert-zeppelin"
   },
+  "bbc6music": {
+    "name": "BBC Radio 6 Music",
+    "url": "https://as-hls-ww-live.akamaized.net/pool_81827798/live/ww/bbc_6music/bbc_6music.isml/bbc_6music-audio%3d320000.norewind.m3u8"
+  },
   "rpmain": {
     "name": "Radio Paradise Main Mix",
     "url": "http://stream.radioparadise.com/aac-128"
@@ -11,12 +15,28 @@
     "name": "Radio Paradise Mellow Mix",
     "url": "http://stream.radioparadise.com/mellow-128"
   },
+  "wfmufreeform": {
+    "name": "WFMU Freeform",
+    "url": "https://stream0.wfmu.org/freeform-high.aac"
+  },
   "wfmurocksoul": {
     "name": "WFMU Rock'n'Soul",
     "url": "http://stream0.wfmu.org/rocknsoul"
   },
+  "somafmgroovesalad": {
+    "name": "Soma FM Groove Salad",
+    "url": "https://somafm.com/groovesalad130.pls"
+  },
   "somafmindiepop": {
     "name": "Soma FM Indie Pop Rocks",
-    "url": "https://ice2.somafm.com/indiepop-128-aac"
+    "url": "https://somafm.com/indiepop130.pls"
+  },
+  "fip": {
+    "name": "FIP",
+    "url": "https://icecast.radiofrance.fr/fip-hifi.aac"
+  },
+  "fiprock": {
+    "name": "FIP Rock",
+    "url": "https://icecast.radiofrance.fr/fiprock-hifi.aac"
   }
 }

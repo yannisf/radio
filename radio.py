@@ -447,9 +447,12 @@ function render(){
   document.body.dataset.status = view.state;
   const shown = view.state !== "idle" && view.state !== "offline";
   const station = stations.find(s => s.id === view.id);
-  // mpv reports the stream URL as media-title when a station has no ICY title.
+  // mpv reports the stream URL or file name as media-title when a station
+  // provides no ICY title.
+  const extension = (view.title || "").split(".").pop().toLowerCase();
   const title = view.title && !view.title.startsWith("http://") &&
-    !view.title.startsWith("https://") ? view.title : "";
+    !view.title.startsWith("https://") && !["aac", "mp3", "m3u8"].includes(extension)
+    ? view.title : "";
   $("name").textContent = shown && station ? station.name : "";
   $("status").textContent = labels[view.state] || "";
   setTitle(view.state === "error" ? (view.detail || "") :
