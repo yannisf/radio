@@ -5,8 +5,10 @@ and manages one persistent **mpv** process through its private Unix socket.
 No Python dependencies, frontend build, database, or external web server.
 
 The music plays on the **Debian machine's audio output**, not in the browser.
-Closing the browser does not stop playback. The UI supports stream selection,
-play, stop, pause/resume, volume, and playback status (refreshed every 3 seconds).
+Closing the browser does not stop playback. The UI is a mobile-first list of
+stations: tap one to start it, and a panel slides up showing the station, its
+current track title when the stream provides one, and any playback error, plus
+a stop button. Status is refreshed every 3 seconds.
 
 ## 1. Install and test audio
 
@@ -24,13 +26,14 @@ Python 3.9+ is required (Debian 11 or newer).
 
 ## 2. Configure streams
 
-Install the program and copy the example to your user's configuration directory:
+Install the program and copy the included `streams.json` to your user's
+configuration directory:
 
 ```sh
 sudo install -d -m 755 /opt/radio
 sudo install -m 644 radio.py /opt/radio/radio.py
 mkdir -p ~/.config/radio
-cp -n streams.example.json ~/.config/radio/streams.json
+cp -n streams.json ~/.config/radio/streams.json
 chmod 600 ~/.config/radio/streams.json
 nano ~/.config/radio/streams.json
 ```
@@ -53,8 +56,8 @@ nano ~/.config/radio/streams.json
 - The outer keys (`jazz`, `classical`) are unique stream IDs.
 - `name` is the label displayed in the browser.
 - `url` is an actual **HTTP/HTTPS audio stream**, not the station's website.
-- Replace the placeholder URLs above, or keep the real stations in the example
-  file. Availability of third-party streams is not guaranteed.
+- Replace the URLs above, or keep the real stations from the included file.
+  Availability of third-party streams is not guaranteed.
 - Add as many entries as needed. JSON does not allow comments or trailing commas.
 - The service accepts only configured IDs; it cannot execute arbitrary commands
   or play URLs submitted by a browser.
@@ -115,13 +118,22 @@ journalctl --user -u radio.service -f
 startup is `systemctl --user enable --now radio.service`. Changes to the unit file
 itself require `systemctl --user daemon-reload` followed by a restart.
 
+Each browser polls `/api/status` every 3 seconds; those polls are not written to
+the journal, so it only fills with control requests and warnings.
+
 If `systemctl --user` reports that it cannot connect to the bus, log in directly
 as the target user (for example over SSH), rather than running these commands
 from a root shell or a plain `su` session.
 
-## 5. Open the UI remotely
+## 5. Open the UI
 
-By default the service listens **only on Debian's localhost**. On your laptop:
+The service listens on **all IPv4 interfaces** on port 8080 (`0.0.0.0:8080`).
+There is **no built-in authentication or TLS**, and the service does not check
+the request's hostname. Anyone who can reach port 8080 can control playback,
+so the safest access path from another computer is an SSH tunnel. The service
+logs a warning at startup because it is not bound to localhost.
+
+On your laptop:
 
 ```sh
 ssh -N -L 8080:127.0.0.1:8080 your-user@debian-host
@@ -129,7 +141,7 @@ ssh -N -L 8080:127.0.0.1:8080 your-user@debian-host
 
 Keep that SSH connection open and visit <http://localhost:8080> in your laptop's
 browser. This gives you encrypted, authenticated remote access without needing
-to expose the HTTP service or add a login page.
+to add a login page.
 
 If port 8080 is already used on your laptop, use a different local port:
 
@@ -139,13 +151,14 @@ ssh -N -L 8081:127.0.0.1:8080 your-user@debian-host
 
 Then visit <http://localhost:8081>.
 
-### Optional: direct access on a trusted LAN or private VPN
+### Direct access on a trusted LAN or private VPN
 
-There is **no built-in authentication or TLS**. Anyone who can reach the service
-can control it. Prefer SSH tunnelling; never forward this port from your router
-or expose it to the public internet. Plain LAN HTTP is not encrypted.
+Because the service already listens on all interfaces, it is reachable at
+Debian's private IP, for example `http://192.168.1.50:8080`. Use a stable IP and
+restrict access with your firewall. Plain LAN HTTP is not encrypted. Never
+forward this port from your router or expose it to the public internet.
 
-For direct private-network access, add an override:
+To bind only one address instead of all interfaces, add an override:
 
 ```sh
 systemctl --user edit radio.service
@@ -164,17 +177,17 @@ systemctl --user daemon-reload
 systemctl --user restart radio.service
 ```
 
-Open `http://192.168.1.50:8080`. Use a stable IP and restrict access with your
-firewall. You can instead bind to your private VPN IPv4 address. The service
-accepts the configured hostname/IP as its HTTP Host header; wildcard bind
-addresses are intentionally rejected. For a VPN address that is not available
-at boot, systemd will retry starting the service every 3 seconds.
+Open `http://192.168.1.50:8080`. You can instead bind to your private VPN IPv4
+address. If that address is not available at boot, systemd will retry starting
+the service every 3 seconds.
 
 ## Audio troubleshooting
 
 First inspect `journalctl --user -u radio.service -f` and confirm manual mpv
 playback works under the same user. The service uses `--no-config`, so it does
-not inherit your personal mpv configuration.
+not inherit your personal mpv configuration. It starts mpv with `--ao=alsa`,
+`--volume=100`, and `--audio-device=alsa/plughw:CARD=Headphones,DEV=0`.
+The UI has no volume control, so playback always uses that player volume.
 
 To list mpv's audio devices:
 
@@ -182,9 +195,17 @@ To list mpv's audio devices:
 mpv --audio-device=help
 ```
 
-If automatic output selection is wrong, add `--audio-device=DEVICE` to the
-service's `ExecStart` using an override as above. Use a device from that list;
-for example, `--audio-device=alsa/default` for a headless ALSA setup. Stop the
+The default device is a specific ALSA card and will not exist on every machine.
+Choose a device from that list and pass it to the service with an override:
+
+```ini
+[Service]
+ExecStart=
+ExecStart=/usr/bin/python3 /opt/radio/radio.py --config %h/.config/radio/streams.json --runtime-dir %t/radio --audio-device alsa/default
+```
+
+The `--ao=alsa` output driver is fixed in `radio.py`; using PipeWire or
+PulseAudio as the mpv audio output requires editing that argument. Stop the
 service before testing a manual player if your ALSA device is exclusive.
 
 On a headless ALSA machine, the service user may need access to `/dev/snd`:
@@ -198,11 +219,3 @@ membership. Desktop PipeWire/PulseAudio setups normally do not need this group.
 Enabling linger keeps the user manager alive, but does not itself configure an
 audio server: make sure your existing audio setup also works after reboot and
 logout. mpv software volume is separate from the system/hardware mixer volume.
-
-## Development tests
-
-```sh
-python3 -m unittest discover -s tests -v
-```
-
-Tests use a fake mpv socket server; they do not need mpv or an audio device.

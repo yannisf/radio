@@ -194,118 +194,319 @@ class Player:
             self._stop_process()
 
 
+_ICON = (
+    "data:image/png;base64,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"
+    "t2FuL/AZ0A58na01zpAAAAAElFTkSuQmCC"
+)
+
 HTML = """<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Radio</title>
-  <style>
-    body { font: 18px system-ui, sans-serif; max-width: 480px; margin: 3rem auto;
-           padding: 0 1rem; color: #202830; background: #f4f6f8; }
-    main { background: white; padding: 1.5rem; border-radius: 12px; }
-    select, button { font: inherit; padding: .65rem; }
-    select { width: 100%; margin: .5rem 0 1rem; }
-    .buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
-    button { cursor: pointer; }
-    input { width: 100%; margin-top: .75rem; }
-    #status, #title { overflow-wrap: anywhere; }
-    #title { color: #52616b; min-height: 1.5em; }
-    #error { color: #a01818; overflow-wrap: anywhere; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Radio</title>
+<meta name="theme-color" content="#F6F4FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#110E1B" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Radio">
+<link rel="icon" type="image/png" href="__ICON__">
+<link rel="apple-touch-icon" href="__ICON__">
+<style>
+:root{
+  --bg:#F6F4FA;--fg:#2A2160;--line:#E3DEF0;--card:#ECE8F7;
+  --inv-bg:linear-gradient(135deg,#3A2E9E,#7B3FB0);--inv-solid:#3A2E9E;--inv-fg:#FFFFFF;--inv-mute:#CDC3F2;
+  --ok:#6BF0B5;--warn:#FFD166;--err:#FF8FA3;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#110E1B;--fg:#E4DFF7;--line:#271F3A;--card:#1D1830;
+    --inv-bg:linear-gradient(135deg,#5340D6,#8E3FBF);--inv-solid:#4B38C4;--inv-fg:#FFFFFF;--inv-mute:#D3CAF7;
+    --ok:#6BF0B5;--warn:#FFD166;--err:#FF8FA3;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#110E1B;--fg:#E4DFF7;--line:#271F3A;--card:#1D1830;
+  --inv-bg:linear-gradient(135deg,#5340D6,#8E3FBF);--inv-solid:#4B38C4;--inv-fg:#FFFFFF;--inv-mute:#D3CAF7;
+  --ok:#6BF0B5;--warn:#FFD166;--err:#FF8FA3;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:24px 16px 130px}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.row{all:unset;box-sizing:border-box;display:block;width:100%;min-height:56px;padding:17px 18px;
+  border-radius:14px;background:var(--card);font-size:18px;font-weight:500;
+  cursor:pointer;-webkit-tap-highlight-color:transparent}
+.row:focus-visible{outline:2px solid var(--fg);outline-offset:-4px}
+@media (hover:hover){.row:hover{background:rgba(84,60,200,.08)}}
+.row[aria-pressed="true"]{background:var(--inv-bg);color:var(--inv-fg);font-weight:600}
+
+.player{position:fixed;left:0;right:0;bottom:0;background:var(--inv-bg);color:var(--inv-fg);
+  padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));border-radius:20px 20px 0 0;
+  box-shadow:0 -10px 30px rgba(30,15,80,.3),inset 0 1px 0 rgba(255,255,255,.08);transform:translateY(110%);transition:transform .25s ease}
+body:not([data-status="idle"]) .player{transform:none}
+.player-in{max-width:608px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
+.player-in>div{min-width:0}
+.name,.title{overflow:hidden;white-space:nowrap}
+.name{font-size:16px;font-weight:600}
+.name:empty{display:none}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--inv-mute);margin-top:2px}
+#status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--inv-mute);flex:none}
+[data-status="playing"] .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(94,242,192,.22)}
+[data-status="connecting"] .dot,[data-status="buffering"] .dot{background:var(--warn);animation:pulse 1s infinite}
+[data-status="error"] .dot,[data-status="offline"] .dot{background:var(--err)}
+@keyframes pulse{50%{opacity:.3}}
+.title{font-size:14px;opacity:.8;margin-top:4px}
+#titletext{display:inline-block}
+#titletext.scroll{animation:marquee var(--marquee-duration,12s) ease-in-out infinite alternate}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(var(--marquee-shift,-100px))}}
+.stop{all:unset;box-sizing:border-box;width:52px;height:52px;border-radius:50%;background:var(--inv-fg);color:var(--inv-solid);display:grid;place-items:center;cursor:pointer}
+.stop:focus-visible{outline:2px solid var(--inv-fg);outline-offset:3px}
+.stop::before{content:"";width:16px;height:16px;border-radius:3px;background:currentColor}
+[data-status="offline"] .stop{display:none}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .title{overflow-x:auto;scrollbar-width:none}
+  .title::-webkit-scrollbar{display:none}
+}
+</style>
 </head>
-<body>
-<main>
-  <h1>Radio</h1>
-  <label for="streams">Stream</label>
-  <select id="streams" disabled></select>
-  <div class="buttons">
-    <button id="play" disabled>Play</button>
-    <button id="pause" disabled>Pause</button>
-    <button id="stop">Stop</button>
+<body data-status="idle">
+<main><ul id="list"></ul></main>
+
+<footer class="player" aria-live="polite">
+  <div class="player-in">
+    <div>
+      <div class="name" id="name"></div>
+      <div class="status"><span class="dot"></span><span id="status"></span></div>
+      <div class="title" id="title"><span id="titletext"></span></div>
+    </div>
+    <button class="stop" id="stop" aria-label="Stop"></button>
   </div>
-  <p id="status" role="status">Connecting…</p>
-  <p id="title"></p>
-  <label for="volume">Volume: <span id="level">50</span>%</label>
-  <input id="volume" type="range" min="0" max="100" value="50">
-  <p id="error" role="alert"></p>
-</main>
+</footer>
+
 <script>
-  const el = id => document.getElementById(id);
-  let paused = false;
-  let streams = [];
-  let actionError = '';
-  async function api(path, body) {
-    const response = await fetch('/api/' + path, {
-      method: body === undefined ? 'GET' : 'POST',
-      headers: body === undefined ? {} : {'Content-Type': 'application/json'},
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(10000)
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Request failed');
-    return data;
+const labels = {connecting:"Connecting…", buffering:"Buffering…", playing:"Live",
+                paused:"Paused", error:"Can’t play this stream", offline:"Backend unreachable"};
+let stations = [];
+let view = {state:"idle", id:null};
+let lastRequested = null;
+let actionError = "";
+const $ = id => document.getElementById(id);
+const list = $("list");
+
+async function call(path, body){
+  const options = body === undefined ? {signal: AbortSignal.timeout(10000)} :
+    {method: "POST", headers: {"Content-Type": "application/json"},
+     body: JSON.stringify(body), signal: AbortSignal.timeout(10000)};
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    // The backend always reports errors as JSON; anything else is an
+    // intermediary or a proxy, so treat it as an unreachable server.
+    const problem = new Error(data && data.error ? data.error : "Server returned " + response.status);
+    problem.status = data && data.error ? response.status : 0;
+    throw problem;
   }
-  async function refresh() {
-    try {
-      const status = await api('status');
-      const stream = streams.find(s => s.id === status.stream);
-      el('status').textContent = status.state + (stream ? ' — ' + stream.name : '');
-      el('title').textContent = status.title || '';
-      paused = status.state === 'paused';
-      el('pause').textContent = paused ? 'Resume' : 'Pause';
-      el('pause').disabled = status.state === 'stopped';
-      if (document.activeElement !== el('volume')) {
-        el('volume').value = Math.round(status.volume);
-        el('level').textContent = Math.round(status.volume);
-      }
-      el('error').textContent = actionError || status.error || '';
-    } catch (error) {
-      el('status').textContent = 'Disconnected';
-      el('error').textContent = error.message;
-    }
+  return data || {};
+}
+
+function failure(error){
+  return {state: error.status ? "error" : "offline", id: lastRequested, detail: error.message};
+}
+
+function present(status){
+  if (status.error)
+    return {state: "error", id: status.stream || lastRequested, detail: status.error};
+  if (status.state === "stopped")
+    return {state: "idle", id: null};
+  return {state: status.state, id: status.stream || lastRequested, title: status.title};
+}
+
+async function refresh(){
+  try {
+    view = present(await call("/api/status"));
+    actionError = view.state === "error" ? "" : actionError;
+  } catch (error) {
+    view = failure(error);
   }
-  async function command(path, body) {
-    try {
-      await api(path, body);
-      actionError = '';
-    } catch (error) {
-      actionError = error.message;
+  if (actionError && view.state !== "error" && view.state !== "offline")
+    view = {state: "error", id: lastRequested, detail: actionError};
+  render();
+}
+
+async function act(path, body, optimistic){
+  view = optimistic;
+  render();
+  try {
+    await call(path, body);
+    actionError = "";
+  } catch (error) {
+    actionError = error.message;
+  }
+  await refresh();
+}
+
+let lastTitle = null;
+function setTitle(text){
+  const box = $("title"), track = $("titletext");
+  if (text === lastTitle) return;
+  lastTitle = text;
+  track.classList.remove("scroll");
+  track.style.removeProperty("--marquee-shift");
+  track.style.removeProperty("--marquee-duration");
+  track.textContent = text;
+  box.hidden = !text;
+  if (!text) return;
+  // Measure after layout; only scroll when the text does not fit.
+  requestAnimationFrame(() => {
+    const shift = track.getBoundingClientRect().width - box.clientWidth;
+    if (shift > 4){
+      track.style.setProperty("--marquee-shift", -Math.ceil(shift) + "px");
+      track.style.setProperty("--marquee-duration", Math.max(6, Math.round(shift / 25)) + "s");
+      track.classList.add("scroll");
     }
+  });
+}
+addEventListener("resize", () => {
+  const text = lastTitle;
+  lastTitle = null;
+  setTitle(text);
+});
+
+function render(){
+  document.body.dataset.status = view.state;
+  const shown = view.state !== "idle" && view.state !== "offline";
+  const station = stations.find(s => s.id === view.id);
+  // mpv reports the stream URL as media-title when a station has no ICY title.
+  const title = view.title && !view.title.startsWith("http://") &&
+    !view.title.startsWith("https://") ? view.title : "";
+  $("name").textContent = shown && station ? station.name : "";
+  $("status").textContent = labels[view.state] || "";
+  setTitle(view.state === "error" ? (view.detail || "") :
+    view.state === "playing" ? title : "");
+  list.querySelectorAll(".row").forEach(row =>
+    row.setAttribute("aria-pressed", String(shown && row.dataset.id === view.id)));
+}
+
+function renderList(){
+  list.textContent = "";
+  for (const station of stations){
+    const item = document.createElement("li");
+    const row = document.createElement("button");
+    row.className = "row";
+    row.type = "button";
+    row.dataset.id = station.id;
+    row.textContent = station.name;
+    item.appendChild(row);
+    list.appendChild(item);
+  }
+  render();
+}
+
+list.addEventListener("click", event => {
+  const row = event.target.closest(".row");
+  if (!row) return;
+  lastRequested = row.dataset.id;
+  act("/api/play", {stream: lastRequested}, {state: "connecting", id: lastRequested});
+});
+
+$("stop").onclick = () => {
+  lastRequested = null;
+  act("/api/stop", {}, {state: "idle", id: null});
+};
+
+async function start(){
+  try {
+    stations = (await call("/api/streams")).streams;
+  } catch (error) {
+    view = failure(error);
+    render();
+    setTimeout(start, 3000);
+    return;
+  }
+  renderList();
+  async function poll(){
     await refresh();
+    setTimeout(poll, 3000);
   }
-  el('play').onclick = () => command('play', {stream: el('streams').value});
-  el('stop').onclick = () => command('stop', {});
-  el('pause').onclick = () => command('pause', {paused: !paused});
-  el('volume').oninput = () => el('level').textContent = el('volume').value;
-  el('volume').onchange = () => command('volume', {volume: Number(el('volume').value)});
-  async function initialize() {
-    try {
-      streams = (await api('streams')).streams;
-      for (const stream of streams) {
-        const option = document.createElement('option');
-        option.value = stream.id;
-        option.textContent = stream.name;
-        el('streams').append(option);
-      }
-      el('streams').disabled = false;
-      el('play').disabled = false;
-    } catch (error) {
-      el('error').textContent = error.message;
-      setTimeout(initialize, 3000);
-      return;
-    }
-    async function poll() {
-      await refresh();
-      setTimeout(poll, 3000);
-    }
-    poll();
-  }
-  initialize();
+  poll();
+}
+
+start();
 </script>
 </body>
 </html>
-"""
+""".replace("__ICON__", _ICON)
 
 
 class RadioServer(ThreadingHTTPServer):
