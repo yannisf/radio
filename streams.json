@@ -1,0 +1,22 @@
+{
+  "zepellin": {
+    "name": "Zepellin 106.7",
+    "url": "https://radiostreaming.ert.gr/ert-zeppelin"
+  },
+  "rpmain": {
+    "name": "Radio Paradise Main Mix",
+    "url": "http://stream.radioparadise.com/aac-128"
+  },
+  "rpmellow": {
+    "name": "Radio Paradise Mellow Mix",
+    "url": "http://stream.radioparadise.com/mellow-128"
+  },
+  "wfmurocksoul": {
+    "name": "WFMU Rock'n'Soul",
+    "url": "http://stream0.wfmu.org/rocknsoul"
+  },
+  "somafmindiepop": {
+    "name": "Soma FM Indie Pop Rocks",
+    "url": "https://ice2.somafm.com/indiepop-128-aac"
+  }
+}
