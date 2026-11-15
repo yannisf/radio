@@ -1,0 +1,21 @@
+[Unit]
+Description=Home Radio
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=kodi
+SupplementaryGroups=audio
+ExecStart=/usr/bin/python3 /opt/homeradio/radio.py --config /etc/homeradio/streams.json --runtime-dir /run/homeradio --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=3
+RuntimeDirectory=homeradio
+RuntimeDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+KillMode=control-group
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target
