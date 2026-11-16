@@ -38,5 +38,13 @@
   "fiprock": {
     "name": "FIP Rock",
     "url": "https://icecast.radiofrance.fr/fiprock-hifi.aac"
+  },
+  "nts1": {
+    "name": "NTS Radio 1 (London)",
+    "url": "https://stream-relay-geo.ntslive.net/stream?client=direct"
+  },
+  "nts2": {
+    "name": "NTS Radio 2 (Los Angeles)",
+    "url": "https://stream-relay-geo.ntslive.net/stream2?client=direct"
   }
 }
