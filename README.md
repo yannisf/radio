@@ -6,9 +6,10 @@ No Python dependencies, frontend build, database, or external web server.
 
 The music plays on the **Debian machine's audio output**, not in the browser.
 Closing the browser does not stop playback. The UI is a mobile-first list of
-stations: tap one to start it, and a panel slides up showing the station, its
-current track title when the stream provides one, and any playback error, plus
-a stop button. Status is refreshed every 3 seconds.
+stations grouped by network: tap a group to expand it, tap a station to start
+it, and a panel slides up showing the station, its current track title when the
+stream provides one, and any playback error, plus a stop button. Status is
+refreshed every 3 seconds.
 
 ## 1. Install and test audio
 
@@ -37,27 +38,39 @@ sudoedit /etc/homeradio/streams.json
 ```
 
 Replace the included stream URLs with the desired stations. The file is
-ordinary JSON:
+ordinary JSON, organized into groups:
 
 ```json
 {
   "jazz": {
-    "name": "My Jazz Station",
-    "url": "https://example.com/jazz-stream"
+    "name": "Jazz",
+    "myjazz": {
+      "name": "My Jazz Station",
+      "url": "https://example.com/jazz-stream"
+    }
   },
   "classical": {
-    "name": "My Classical Station",
-    "url": "https://example.com/classical-stream"
+    "name": "Classical",
+    "myclassical": {
+      "name": "My Classical Station",
+      "url": "https://example.com/classical-stream"
+    }
   }
 }
 ```
 
-- The outer keys (`jazz`, `classical`) are unique stream IDs.
-- `name` is the label displayed in the browser.
+- The outer keys (`jazz`, `classical`) are unique group IDs. Their `name` is
+  the heading shown in the browser; tap it to expand or collapse the group.
+  Only one group is expanded at a time, and all start collapsed.
+- Each group contains one or more stations below its heading. The station keys
+  (`myjazz`, `myclassical`) are unique stream IDs and must not be repeated
+  across groups.
+- A station's `name` is the label displayed in the browser.
 - `url` is an actual **HTTP/HTTPS audio stream**, not the station's website.
 - Replace the URLs above, or keep the real stations from the included file.
   Availability of third-party streams is not guaranteed.
-- Add as many entries as needed. JSON does not allow comments or trailing commas.
+- Add as many groups and stations as needed. JSON does not allow comments or
+  trailing commas.
 - The service accepts only configured IDs; it cannot execute arbitrary commands
   or play URLs submitted by a browser.
 - Configuration is read at startup. **Restart the service after editing it,

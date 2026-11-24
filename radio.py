@@ -22,20 +22,43 @@ LOG = logging.getLogger("radio")
 
 def load_streams(path):
     with open(path, encoding="utf-8") as file:
-        streams = json.load(file)
-    if not isinstance(streams, dict) or not streams:
-        raise ValueError("Configuration must be a non-empty object of stream IDs.")
-    for stream_id, stream in streams.items():
-        if not stream_id or not isinstance(stream, dict):
-            raise ValueError("Each stream needs an ID and an object with name and url.")
-        if not isinstance(stream.get("name"), str) or not stream["name"].strip():
-            raise ValueError(f"Stream {stream_id!r} needs a non-empty name.")
-        url = stream.get("url")
-        if not isinstance(url, str) or urlsplit(url).scheme not in ("http", "https"):
-            raise ValueError(f"Stream {stream_id!r} needs an HTTP or HTTPS URL.")
-        if not urlsplit(url).hostname:
-            raise ValueError(f"Stream {stream_id!r} needs a URL with a hostname.")
-    return streams
+        config = json.load(file)
+    if not isinstance(config, dict) or not config:
+        raise ValueError("Configuration must be a non-empty object of stream groups.")
+    groups = []
+    stream_ids = set()
+    for group_id, group in config.items():
+        if not group_id or not isinstance(group, dict):
+            raise ValueError("Each group needs an ID and an object with a name and streams.")
+        if "url" in group and not isinstance(group["url"], dict):
+            raise ValueError(f"Group {group_id!r} must contain streams, not a URL.")
+        if not isinstance(group.get("name"), str) or not group["name"].strip():
+            raise ValueError(f"Group {group_id!r} needs a non-empty name.")
+        streams = []
+        for stream_id, stream in group.items():
+            if stream_id == "name":
+                continue
+            if not stream_id or not isinstance(stream, dict):
+                raise ValueError(f"Stream {stream_id!r} needs an object with name and url.")
+            if not isinstance(stream.get("name"), str) or not stream["name"].strip():
+                raise ValueError(f"Stream {stream_id!r} needs a non-empty name.")
+            url = stream.get("url")
+            if not isinstance(url, str) or urlsplit(url).scheme not in ("http", "https"):
+                raise ValueError(f"Stream {stream_id!r} needs an HTTP or HTTPS URL.")
+            if not urlsplit(url).hostname:
+                raise ValueError(f"Stream {stream_id!r} needs a URL with a hostname.")
+            if stream_id in stream_ids:
+                raise ValueError(f"Stream ID {stream_id!r} is used more than once.")
+            stream_ids.add(stream_id)
+            streams.append({"id": stream_id, "name": stream["name"], "url": url})
+        if not streams:
+            raise ValueError(f"Group {group_id!r} needs at least one stream.")
+        groups.append({"id": group_id, "name": group["name"], "streams": streams})
+    return groups
+
+
+def flatten_streams(groups):
+    return {stream["id"]: stream for group in groups for stream in group["streams"]}
 
 
 class PlayerError(Exception):
@@ -302,12 +325,25 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font:400 15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 main{max-width:640px;margin:0 auto;padding:24px 16px 130px}
 ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.row{all:unset;box-sizing:border-box;display:block;width:100%;min-height:56px;padding:17px 18px;
-  border-radius:14px;background:var(--card);font-size:18px;font-weight:500;
+.row{all:unset;box-sizing:border-box;display:block;width:100%;min-height:48px;padding:13px 15px;
+  border-radius:10px;background:var(--bg);font-size:16px;font-weight:500;
   cursor:pointer;-webkit-tap-highlight-color:transparent}
 .row:focus-visible{outline:2px solid var(--fg);outline-offset:-4px}
 @media (hover:hover){.row:hover{background:rgba(84,60,200,.08)}}
 .row[aria-pressed="true"]{background:var(--inv-bg);color:var(--inv-fg);font-weight:600}
+.group{background:var(--card);border-radius:18px;padding:8px}
+.group-name{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
+  width:100%;padding:12px;border-radius:10px;font-size:12px;font-weight:600;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--fg);opacity:.6;cursor:pointer;
+  -webkit-tap-highlight-color:transparent}
+.group-name:focus-visible{outline:2px solid var(--fg);outline-offset:-2px}
+@media (hover:hover){.group-name:hover{background:rgba(84,60,200,.08)}}
+.group-name::after{content:"";width:8px;height:8px;margin-left:12px;flex:none;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(45deg);transition:transform .2s ease}
+.group-name[aria-expanded="true"]::after{transform:rotate(-135deg)}
+.group>ul{margin-top:2px;gap:8px}
+.group>ul[hidden]{display:none}
 
 .player{position:fixed;left:0;right:0;bottom:0;background:var(--inv-bg);color:var(--inv-fg);
   padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));border-radius:20px 20px 0 0;
@@ -357,6 +393,7 @@ body:not([data-status="idle"]) .player{transform:none}
 <script>
 const labels = {connecting:"Connecting…", buffering:"Buffering…", playing:"Live",
                 paused:"Paused", error:"Can’t play this stream", offline:"Backend unreachable"};
+let groups = [];
 let stations = [];
 let view = {state:"idle", id:null};
 let lastRequested = null;
@@ -463,20 +500,50 @@ function render(){
 
 function renderList(){
   list.textContent = "";
-  for (const station of stations){
+  for (const [index, group] of groups.entries()){
     const item = document.createElement("li");
-    const row = document.createElement("button");
-    row.className = "row";
-    row.type = "button";
-    row.dataset.id = station.id;
-    row.textContent = station.name;
-    item.appendChild(row);
+    item.className = "group";
+    const heading = document.createElement("button");
+    heading.className = "group-name";
+    heading.type = "button";
+    heading.setAttribute("aria-expanded", "false");
+    heading.setAttribute("aria-controls", `group-${index}`);
+    heading.textContent = group.name;
+    item.appendChild(heading);
+    const sublist = document.createElement("ul");
+    sublist.id = `group-${index}`;
+    sublist.hidden = true;
+    sublist.setAttribute("aria-label", group.name);
+    for (const station of group.streams){
+      const entry = document.createElement("li");
+      const row = document.createElement("button");
+      row.className = "row";
+      row.type = "button";
+      row.dataset.id = station.id;
+      row.textContent = station.name;
+      entry.appendChild(row);
+      sublist.appendChild(entry);
+    }
+    item.appendChild(sublist);
     list.appendChild(item);
   }
   render();
 }
 
 list.addEventListener("click", event => {
+  const heading = event.target.closest(".group-name");
+  if (heading){
+    const expanded = heading.getAttribute("aria-expanded") === "true";
+    for (const other of list.querySelectorAll(".group-name")){
+      other.setAttribute("aria-expanded", "false");
+      document.getElementById(other.getAttribute("aria-controls")).hidden = true;
+    }
+    if (!expanded){
+      heading.setAttribute("aria-expanded", "true");
+      document.getElementById(heading.getAttribute("aria-controls")).hidden = false;
+    }
+    return;
+  }
   const row = event.target.closest(".row");
   if (!row) return;
   lastRequested = row.dataset.id;
@@ -490,7 +557,9 @@ $("stop").onclick = () => {
 
 async function start(){
   try {
-    stations = (await call("/api/streams")).streams;
+    const data = await call("/api/streams");
+    groups = data.groups;
+    stations = groups.flatMap(group => group.streams);
   } catch (error) {
     view = failure(error);
     render();
@@ -515,10 +584,11 @@ start();
 class RadioServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address, player, streams):
+    def __init__(self, address, player, groups):
         super().__init__(address, RadioHandler)
         self.player = player
-        self.streams = streams
+        self.groups = groups
+        self.streams = flatten_streams(groups)
 
 
 class RadioHandler(BaseHTTPRequestHandler):
@@ -547,8 +617,11 @@ class RadioHandler(BaseHTTPRequestHandler):
         if path == "/":
             self.respond(200, HTML, html=True)
         elif path == "/api/streams":
-            self.respond(200, {"streams": [{"id": key, "name": value["name"]}
-                                          for key, value in self.server.streams.items()]})
+            self.respond(200, {"groups": [
+                {"id": group["id"], "name": group["name"],
+                 "streams": [{"id": stream["id"], "name": stream["name"]}
+                             for stream in group["streams"]]}
+                for group in self.server.groups]})
         elif path == "/api/status":
             try:
                 self.respond(200, self.server.player.status())
@@ -622,7 +695,8 @@ def main():
     server = None
     temporary = None
     try:
-        streams = load_streams(args.config)
+        groups = load_streams(args.config)
+        streams = flatten_streams(groups)
         if args.runtime_dir:
             runtime = Path(args.runtime_dir)
             runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -634,7 +708,7 @@ def main():
             runtime = Path(temporary.name)
         player = Player(runtime, streams, args.audio_device)
         # Bind before starting mpv so a duplicate service cannot launch a player.
-        server = RadioServer((args.host, args.port), player, streams)
+        server = RadioServer((args.host, args.port), player, groups)
         player.start()
         LOG.info("Radio UI: http://%s:%s", args.host, server.server_port)
         if server.server_address[0] != "127.0.0.1":
