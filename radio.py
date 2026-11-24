@@ -332,16 +332,23 @@ ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10p
 @media (hover:hover){.row:hover{background:rgba(84,60,200,.08)}}
 .row[aria-pressed="true"]{background:var(--inv-bg);color:var(--inv-fg);font-weight:600}
 .group{background:var(--card);border-radius:18px;padding:8px}
-.group-name{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;
-  width:100%;padding:12px;border-radius:10px;font-size:12px;font-weight:600;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--fg);opacity:.6;cursor:pointer;
+.group-name{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:11px;
+  width:100%;padding:13px 12px;border-radius:10px;font-size:14px;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--fg);cursor:pointer;
   -webkit-tap-highlight-color:transparent}
 .group-name:focus-visible{outline:2px solid var(--fg);outline-offset:-2px}
-@media (hover:hover){.group-name:hover{background:rgba(84,60,200,.08)}}
-.group-name::after{content:"";width:8px;height:8px;margin-left:12px;flex:none;
-  border-right:2px solid currentColor;border-bottom:2px solid currentColor;
-  transform:rotate(45deg);transition:transform .2s ease}
-.group-name[aria-expanded="true"]::after{transform:rotate(-135deg)}
+@media (hover:hover){.group-name:hover{background:hsl(var(--hue,258) 70% 55% / .1)}}
+.group-name[aria-expanded="true"]{
+  background:linear-gradient(90deg,hsl(var(--hue,258) 70% 55% / .14),hsl(var(--hue,258) 70% 55% / 0) 88%)}
+.group-name::before{content:"";width:4px;height:16px;border-radius:2px;flex:none;
+  background:linear-gradient(180deg,hsl(var(--hue,258) 74% 56%),hsl(calc(var(--hue,258) + 34) 72% 64%));
+  box-shadow:0 0 10px hsl(var(--hue,258) 75% 58% / .4);
+  transition:height .2s ease,box-shadow .2s ease}
+.group-name[aria-expanded="true"]::before{height:22px;box-shadow:0 0 14px hsl(var(--hue,258) 80% 60% / .55)}
+.group-name::after{content:"";width:7px;height:7px;margin-left:auto;flex:none;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.7;
+  transform:rotate(45deg);transition:transform .2s ease,opacity .2s ease}
+.group-name[aria-expanded="true"]::after{transform:rotate(-135deg);opacity:1}
 .group>ul{margin-top:2px;gap:8px}
 .group>ul[hidden]{display:none}
 
@@ -503,6 +510,7 @@ function renderList(){
   for (const [index, group] of groups.entries()){
     const item = document.createElement("li");
     item.className = "group";
+    item.style.setProperty("--hue", String(250 + index * 23 % 80));
     const heading = document.createElement("button");
     heading.className = "group-name";
     heading.type = "button";
