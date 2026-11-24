@@ -28,7 +28,9 @@ root. Python 3.9+ is required (Debian 11 or newer).
 
 ## 2. Install the program and configure streams
 
-Install the script and an editable copy of the included stream configuration:
+The included `deploy.sh` installs the script, the configuration and the systemd
+unit in one step (see [Deploying updates from git](#deploying-updates-from-git)).
+That is the recommended path. To install the files manually instead:
 
 ```sh
 sudo install -d -o root -g root -m 755 /opt/homeradio /etc/homeradio
@@ -151,6 +153,50 @@ sudo journalctl -u homeradio.service -f
 automatic startup is `sudo systemctl enable --now homeradio.service`. Changes to
 the unit file itself require `sudo systemctl daemon-reload` followed by a
 restart.
+
+### Deploying updates from git
+
+After pulling a new version, run the deploy script from the checkout:
+
+```sh
+git pull
+sudo ./deploy.sh
+```
+
+It validates `streams.json`, installs `radio.py` to `/opt/homeradio` as
+`root:root` mode `0644`, installs `streams.json` to `/etc/homeradio` owned by
+the service account with mode `0600`, and installs the unit file if it changed.
+It then enables and restarts `homeradio.service` and reports whether the
+service came back up.
+
+Before changing anything, the script runs preflight checks: root access, the
+service user and `audio` group, `python3` (3.9+) and `mpv`, unit syntax and its
+`User=`/`ExecStart=`, target paths and permissions, configuration validity,
+whether the service account can read the configuration, port availability and
+audio device access. To run only those checks without deploying:
+
+```sh
+sudo ./deploy.sh --check
+```
+
+`--check` changes nothing and exits non-zero if a required check fails. It can
+be combined with `--keep-config` to validate the configuration that would
+actually be kept:
+
+```sh
+sudo ./deploy.sh --check --keep-config
+```
+
+A replaced `streams.json` is saved first as `/etc/homeradio/streams.json.bak`,
+so server-side edits are not lost. If you want to keep those edits in place
+instead of deploying the version from the checkout, use:
+
+```sh
+sudo ./deploy.sh --keep-config
+```
+
+The first run also installs and enables the service, so the manual installation
+steps in sections 2 and 4 are optional when using the script.
 
 Each browser polls `/api/status` every 3 seconds; those polls are not written to
 the journal, so it only fills with control requests and warnings.
