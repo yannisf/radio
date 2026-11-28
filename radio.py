@@ -642,7 +642,9 @@ class RadioHandler(BaseHTTPRequestHandler):
         # JSON-only POSTs and same-origin checks prevent other websites controlling
         # a localhost radio through a visitor's browser. No CORS is enabled.
         origin = self.headers.get("Origin")
-        if (origin is not None and origin != "http://" + self.headers.get("Host", "")) or \
+        if (origin is not None and origin not in (
+                "http://" + self.headers.get("Host", ""),
+                "https://" + self.headers.get("Host", ""))) or \
                 self.headers.get("Sec-Fetch-Site") == "cross-site":
             self.respond(403, {"error": "Cross-origin requests are not allowed."})
             return
